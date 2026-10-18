@@ -9,11 +9,13 @@
   --accent-soft: #e2f3f0;
   --warn: #9a5b00;
   --radius: 12px;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
+/* Dark palette: follows the OS unless a light theme is set explicitly, and
+   applies whenever data-theme="dark" is set (e.g. by the claude.ai viewer). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #121417;
     --card: #1c1f24;
     --text: #e8eaed;
@@ -23,7 +25,21 @@
     --accent-text: #0b1f1c;
     --accent-soft: #1c3531;
     --warn: #f0b04c;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #121417;
+  --card: #1c1f24;
+  --text: #e8eaed;
+  --muted: #9aa1ac;
+  --border: #343941;
+  --accent: #3cc2ab;
+  --accent-text: #0b1f1c;
+  --accent-soft: #1c3531;
+  --warn: #f0b04c;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -38,7 +54,9 @@ body {
 .app {
   max-width: 640px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .app-header h1 { margin: 0; font-size: 1.75rem; }
