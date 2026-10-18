@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tip Calculator</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="app">
+  <header class="app-header">
+    <h1>Tip Calculator</h1>
+    <p class="subtitle">Work out the tip, then split the bill.</p>
+  </header>
+
+  <section class="card" aria-labelledby="bill-heading">
+    <h2 id="bill-heading">Bill</h2>
+
+    <div class="field" id="subtotal-field">
+      <label for="subtotal">Meal subtotal (before tax)</label>
+      <div class="affix-input">
+        <span class="affix">$</span>
+        <input id="subtotal" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="tax">Tax</label>
+      <div class="input-row">
+        <input id="tax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+        <select id="tax-mode" aria-label="Tax unit">
+          <option value="amount">$ amount</option>
+          <option value="percent">% rate</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label" id="tip-label">Tip</span>
+      <div class="tip-presets" role="group" aria-labelledby="tip-label">
+        <button type="button" data-tip="15">15%</button>
+        <button type="button" data-tip="18">18%</button>
+        <button type="button" data-tip="20">20%</button>
+        <button type="button" data-tip="22">22%</button>
+        <button type="button" data-tip="25">25%</button>
+      </div>
+      <div class="affix-input custom-tip">
+        <input id="tip-custom" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Custom" aria-label="Custom tip percent">
+        <span class="affix">%</span>
+      </div>
+      <label class="check">
+        <input id="tip-on-tax" type="checkbox">
+        Calculate tip on the total including tax
+      </label>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="split-heading">
+    <h2 id="split-heading">Split</h2>
+
+    <div id="even-panel">
+      <label for="people-count">Number of people</label>
+      <div class="stepper">
+        <button type="button" id="people-dec" aria-label="Fewer people">&minus;</button>
+        <input id="people-count" type="number" inputmode="numeric" min="1" max="50" value="2">
+        <button type="button" id="people-inc" aria-label="More people">+</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card results" aria-labelledby="summary-heading" aria-live="polite">
+    <h2 id="summary-heading">Summary</h2>
+    <dl class="totals" id="totals"></dl>
+    <p class="headline" id="headline"></p>
+    <div class="table-wrap">
+      <table class="breakdown" id="breakdown">
+        <thead>
+          <tr><th scope="col">Person</th><th scope="col">Food</th><th scope="col">Tax</th><th scope="col">Tip</th><th scope="col">Pays</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
