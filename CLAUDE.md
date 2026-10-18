@@ -13,6 +13,12 @@ The machine has no Node or Python. Git is installed but may not be on PATH in an
 
 Commit after every completed step so the user can roll back to any point. Don't batch several steps into one commit.
 
+## Deployment
+
+The repo is `jackson-schwab/tip-calculator` on GitHub (public). GitHub Pages serves the `main` branch root at https://jackson-schwab.github.io/tip-calculator/, so pushing to `main` deploys. The GitHub CLI (`gh`) is installed at `C:\Program Files\GitHub CLI\gh.exe` and signed in.
+
+A separate private copy is published as a claude.ai artifact at https://claude.ai/artifact/5Hi3LkgRMH8vMznMmKqNR7. It is a single self-contained page with the CSS and JS inlined. It does not update on push and needs republishing by hand.
+
 ## Running tests
 
 Tests live in `tests.html` and run in a browser. To run them headlessly and print the results:

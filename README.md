@@ -9,7 +9,9 @@ Tip presets go from 15% to 25%, and you can enter a custom percentage. Tax can b
 
 ## Running
 
-There's no build step or dependencies. Open `index.html` in a browser.
+Live at **https://jackson-schwab.github.io/tip-calculator/** (GitHub Pages, deployed from `main`).
+
+There's no build step or dependencies. To run it locally, open `index.html` in a browser.
 
 ## Tests
 
