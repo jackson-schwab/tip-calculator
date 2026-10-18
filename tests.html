@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tip Calculator tests</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, Consolas, monospace; margin: 16px; }
+  .pass { color: #1a7f37; }
+  .fail { color: #cf222e; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>calc.js tests</h1>
+<pre id="results"></pre>
+<script src="calc.js"></script>
+<script>
+(function () {
+  'use strict';
+  const T = window.TipCalc;
+  const out = document.getElementById('results');
+  let failures = 0;
+
+  function test(name, fn) {
+    const line = document.createElement('div');
+    try {
+      fn();
+      line.className = 'pass';
+      line.textContent = 'PASS ' + name;
+    } catch (e) {
+      failures++;
+      line.className = 'fail';
+      line.textContent = 'FAIL ' + name + ': ' + e.message;
+    }
+    out.appendChild(line);
+  }
+
+  function eq(actual, expected) {
+    const a = JSON.stringify(actual), b = JSON.stringify(expected);
+    if (a !== b) throw new Error('expected ' + b + ', got ' + a);
+  }
+
+  const sum = (xs) => xs.reduce((a, x) => a + x, 0);
+  const field = (people, key) => people.map((p) => p[key]);
+
+  test('toCents parses dollars and rejects junk', () => {
+    eq(T.toCents('12.34'), 1234);
+    eq(T.toCents('0.1'), 10);
+    eq(T.toCents(''), 0);
+    eq(T.toCents('abc'), 0);
+    eq(T.toCents('-5'), 0);
+  });
+
+  test('formatCents', () => {
+    eq(T.formatCents(123456), '$1,234.56');
+    eq(T.formatCents(5), '$0.05');
+  });
+
+  test('allocate splits evenly and hands out leftover cents', () => {
+    eq(T.allocate(100, [1, 1, 1]), [34, 33, 33]);
+    eq(T.allocate(1000, [1, 3]), [250, 750]);
+    eq(T.allocate(0, []), []);
+    eq(T.allocate(10, [0, 0]), [5, 5]);
+  });
+
+  test('allocate always sums to the total', () => {
+    for (let total = 0; total < 500; total += 7) {
+      eq(sum(T.allocate(total, [3, 1, 4, 1, 5])), total);
+    }
+  });
+
+  test('computeTax by amount and percent', () => {
+    eq(T.computeTax(10000, '8.25', 'amount'), 825);
+    eq(T.computeTax(10000, '8.875', 'percent'), 888);
+    eq(T.computeTax(10000, '', 'percent'), 0);
+  });
+
+  test('computeBill tips on subtotal by default', () => {
+    const b = T.computeBill(5000, 400, 20, false);
+    eq([b.tipCents, b.totalCents], [1000, 6400]);
+  });
+
+  test('computeBill can tip on tax too', () => {
+    const b = T.computeBill(5000, 400, 20, true);
+    eq([b.tipCents, b.totalCents], [1080, 6480]);
+  });
+
+  test('computeBill treats a bad tip percent as zero', () => {
+    eq(T.computeBill(5000, 0, NaN, false).tipCents, 0);
+    eq(T.computeBill(5000, 0, -10, false).tipCents, 0);
+  });
+
+  test('splitEven shares the total within a cent', () => {
+    const r = T.splitEven(T.computeBill(5000, 400, 20, false), 3);
+    eq(field(r.people, 'totalCents'), [2134, 2133, 2133]);
+    eq(sum(field(r.people, 'tipCents')), 1000);
+    eq(sum(field(r.people, 'taxCents')), 400);
+    eq(sum(field(r.people, 'subtotalCents')), 5000);
+  });
+
+  test('splitEven treats a bad count as one person', () => {
+    eq(T.splitEven(T.computeBill(1000, 0, 0, false), 0).people.length, 1);
+  });
+
+  test('splitByItems charges each person for what they ordered', () => {
+    const items = [
+      { name: 'Steak', priceCents: 3000, sharedBy: [0] },
+      { name: 'Pasta', priceCents: 2000, sharedBy: [1] },
+      { name: 'Nachos', priceCents: 1000, sharedBy: [0, 1, 2] },
+    ];
+    const r = T.splitByItems(items, 3, 600, 20, false);
+    eq(r.bill.subtotalCents, 6000);
+    eq(r.bill.tipCents, 1200);
+    eq(field(r.people, 'subtotalCents'), [3334, 2333, 333]);
+    eq(field(r.people, 'tipCents'), [667, 467, 66]);
+    eq(sum(field(r.people, 'taxCents')), 600);
+    eq(sum(field(r.people, 'totalCents')), r.bill.totalCents);
+    eq(r.people[2].items, [{ name: 'Nachos', cents: 333, sharedWith: 3 }]);
+  });
+
+  test('splitByItems splits unassigned items among everyone', () => {
+    const r = T.splitByItems([{ name: 'Fries', priceCents: 900, sharedBy: [] }], 3, 0, 0, false);
+    eq(field(r.people, 'subtotalCents'), [300, 300, 300]);
+  });
+
+  test('splitByItems with tip on tax still sums to the bill', () => {
+    const items = [
+      { name: 'A', priceCents: 1999, sharedBy: [0] },
+      { name: 'B', priceCents: 1349, sharedBy: [1, 2] },
+    ];
+    const r = T.splitByItems(items, 3, 297, 18, true);
+    eq(sum(field(r.people, 'tipCents')), r.bill.tipCents);
+    eq(sum(field(r.people, 'totalCents')), r.bill.totalCents);
+  });
+
+  const summary = document.createElement('div');
+  summary.className = failures ? 'fail' : 'pass';
+  summary.textContent = failures ? failures + ' test(s) failed' : 'All tests passed';
+  out.appendChild(summary);
+  document.title = failures ? 'FAIL' : 'PASS';
+})();
+</script>
+</body>
+</html>
