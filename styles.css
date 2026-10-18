@@ -135,6 +135,53 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .stepper button { width: 44px; flex: 0 0 auto; font-size: 1.25rem; padding: 0; }
 .stepper input { text-align: center; }
 
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+.segmented button { border-color: transparent; background: transparent; font-weight: 600; }
+.segmented button[aria-pressed="true"] {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.hint { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+
+.row-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.row-list li { display: flex; gap: 8px; margin-bottom: 8px; }
+.row-list .remove { width: 44px; flex: 0 0 auto; padding: 0; color: var(--muted); }
+
+.row-list .item-row {
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.item-main { display: flex; gap: 8px; }
+.item-main .item-name { flex: 1 1 auto; min-width: 0; }
+.item-main .affix-input { flex: 0 0 110px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button {
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+}
+.chips button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.chips .chip-note { align-self: center; color: var(--muted); font-size: 0.8rem; }
+
+.add-btn { width: 100%; border-style: dashed; color: var(--accent); font-weight: 600; }
+
 .totals {
   display: grid;
   grid-template-columns: 1fr auto;

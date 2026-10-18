@@ -58,6 +58,11 @@
   <section class="card" aria-labelledby="split-heading">
     <h2 id="split-heading">Split</h2>
 
+    <div class="segmented" role="group" aria-label="How to split">
+      <button type="button" data-mode="even" aria-pressed="true">Evenly</button>
+      <button type="button" data-mode="items" aria-pressed="false">By what each person ordered</button>
+    </div>
+
     <div id="even-panel">
       <label for="people-count">Number of people</label>
       <div class="stepper">
@@ -65,6 +70,17 @@
         <input id="people-count" type="number" inputmode="numeric" min="1" max="50" value="2">
         <button type="button" id="people-inc" aria-label="More people">+</button>
       </div>
+    </div>
+
+    <div id="items-panel" hidden>
+      <h3>People</h3>
+      <ul class="row-list" id="people-list"></ul>
+      <button type="button" class="add-btn" id="add-person">+ Add person</button>
+
+      <h3>Items</h3>
+      <p class="hint">Tap the names of everyone who shared each item. If you don't pick anyone, the item is split among everyone.</p>
+      <ul class="row-list" id="item-list"></ul>
+      <button type="button" class="add-btn" id="add-item">+ Add item</button>
     </div>
   </section>
 

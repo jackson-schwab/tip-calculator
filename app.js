@@ -2,12 +2,19 @@
 (function () {
   'use strict';
 
-  const { toCents, formatCents, computeTax, computeBill, splitEven } = window.TipCalc;
+  const { toCents, formatCents, computeTax, computeBill, splitEven, splitByItems } = window.TipCalc;
   const $ = (id) => document.getElementById(id);
   const MAX_PEOPLE = 50;
 
+  let nextId = 1;
+  const newPerson = () => ({ id: nextId++, name: '' });
+  const newItem = () => ({ id: nextId++, name: '', price: '', sharedBy: new Set() });
+
   const state = {
     tipPercent: 20,
+    mode: 'even',
+    people: [newPerson(), newPerson()],
+    items: [newItem()],
   };
 
   function el(tag, className, text) {
@@ -59,6 +66,151 @@
 
   ['subtotal', 'tax', 'people-count'].forEach((id) => $(id).addEventListener('input', update));
   ['tax-mode', 'tip-on-tax'].forEach((id) => $(id).addEventListener('change', update));
+
+  // ---- Mode ----
+
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll('[data-mode]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+    });
+    $('even-panel').hidden = mode !== 'even';
+    $('items-panel').hidden = mode !== 'items';
+    // In item mode the subtotal comes from the item prices.
+    $('subtotal-field').hidden = mode !== 'even';
+    update();
+  }
+
+  document.querySelectorAll('[data-mode]').forEach((b) => {
+    b.addEventListener('click', () => setMode(b.dataset.mode));
+  });
+
+  // ---- Split by items ----
+
+  const displayName = (person, i) => person.name.trim() || `Person ${i + 1}`;
+
+  function renderPeopleList() {
+    const ul = $('people-list');
+    ul.replaceChildren();
+    state.people.forEach((person, i) => {
+      const li = el('li');
+      const input = el('input');
+      input.type = 'text';
+      input.value = person.name;
+      input.placeholder = `Person ${i + 1}`;
+      input.setAttribute('aria-label', `Name of person ${i + 1}`);
+      input.addEventListener('input', () => {
+        person.name = input.value;
+        renderItemList();
+        update();
+      });
+
+      const remove = el('button', 'remove', '✕');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Remove ${displayName(person, i)}`);
+      remove.disabled = state.people.length === 1;
+      remove.addEventListener('click', () => {
+        state.people.splice(i, 1);
+        state.items.forEach((item) => item.sharedBy.delete(person.id));
+        renderPeopleList();
+        renderItemList();
+        update();
+      });
+
+      li.append(input, remove);
+      ul.append(li);
+    });
+    $('add-person').disabled = state.people.length >= MAX_PEOPLE;
+  }
+
+  function renderChips(item, container) {
+    container.replaceChildren();
+    state.people.forEach((person, i) => {
+      const chip = el('button', '', displayName(person, i));
+      chip.type = 'button';
+      chip.setAttribute('aria-pressed', String(item.sharedBy.has(person.id)));
+      chip.addEventListener('click', () => {
+        if (item.sharedBy.has(person.id)) item.sharedBy.delete(person.id);
+        else item.sharedBy.add(person.id);
+        chip.setAttribute('aria-pressed', String(item.sharedBy.has(person.id)));
+        note.hidden = item.sharedBy.size > 0;
+        update();
+      });
+      container.append(chip);
+    });
+    const note = el('span', 'chip-note', 'Everyone');
+    note.hidden = item.sharedBy.size > 0;
+    container.append(note);
+  }
+
+  function renderItemList() {
+    const ul = $('item-list');
+    ul.replaceChildren();
+    state.items.forEach((item, i) => {
+      const li = el('li', 'item-row');
+      const main = el('div', 'item-main');
+
+      const name = el('input', 'item-name');
+      name.type = 'text';
+      name.value = item.name;
+      name.placeholder = `Item ${i + 1}`;
+      name.setAttribute('aria-label', `Item ${i + 1} name`);
+      name.addEventListener('input', () => {
+        item.name = name.value;
+        update();
+      });
+
+      const priceWrap = el('div', 'affix-input');
+      const price = el('input');
+      price.type = 'number';
+      price.inputMode = 'decimal';
+      price.min = '0';
+      price.step = '0.01';
+      price.placeholder = '0.00';
+      price.value = item.price;
+      price.setAttribute('aria-label', `Item ${i + 1} price`);
+      price.addEventListener('input', () => {
+        item.price = price.value;
+        update();
+      });
+      priceWrap.append(el('span', 'affix', '$'), price);
+
+      const remove = el('button', 'remove', '✕');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Remove item ${i + 1}`);
+      remove.addEventListener('click', () => {
+        state.items.splice(i, 1);
+        if (state.items.length === 0) state.items.push(newItem());
+        renderItemList();
+        update();
+      });
+
+      main.append(name, priceWrap, remove);
+      const chips = el('div', 'chips');
+      chips.setAttribute('role', 'group');
+      chips.setAttribute('aria-label', `Who shared item ${i + 1}`);
+      renderChips(item, chips);
+      li.append(main, chips);
+      ul.append(li);
+    });
+  }
+
+  $('add-person').addEventListener('click', () => {
+    state.people.push(newPerson());
+    renderPeopleList();
+    renderItemList();
+    update();
+    const inputs = $('people-list').querySelectorAll('input');
+    inputs[inputs.length - 1].focus();
+  });
+
+  $('add-item').addEventListener('click', () => {
+    state.items.push(newItem());
+    renderItemList();
+    update();
+    const names = $('item-list').querySelectorAll('.item-name');
+    names[names.length - 1].focus();
+  });
 
   // ---- Results ----
 
@@ -116,18 +268,45 @@
     });
   }
 
+  function computeItemSplit(taxValue, taxMode, tipOnTax) {
+    const items = state.items.map((item, i) => ({
+      name: item.name.trim() || `Item ${i + 1}`,
+      priceCents: toCents(item.price),
+      sharedBy: state.people
+        .map((person, idx) => (item.sharedBy.has(person.id) ? idx : -1))
+        .filter((idx) => idx >= 0),
+    })).filter((item) => item.priceCents > 0);
+    const subtotal = items.reduce((a, it) => a + it.priceCents, 0);
+    const tax = computeTax(subtotal, taxValue, taxMode);
+    return splitByItems(items, state.people.length, tax, state.tipPercent, tipOnTax);
+  }
+
   function update() {
-    const subtotal = toCents($('subtotal').value);
-    const tax = computeTax(subtotal, $('tax').value, $('tax-mode').value);
-    const bill = computeBill(subtotal, tax, state.tipPercent, $('tip-on-tax').checked);
-    const result = splitEven(bill, peopleCount());
-    const names = result.people.map((_, i) => `Person ${i + 1}`);
+    const taxValue = $('tax').value;
+    const taxMode = $('tax-mode').value;
+    const tipOnTax = $('tip-on-tax').checked;
+    let result;
+    let names;
+
+    if (state.mode === 'items') {
+      result = computeItemSplit(taxValue, taxMode, tipOnTax);
+      names = state.people.map(displayName);
+    } else {
+      const subtotal = toCents($('subtotal').value);
+      const tax = computeTax(subtotal, taxValue, taxMode);
+      const bill = computeBill(subtotal, tax, state.tipPercent, tipOnTax);
+      result = splitEven(bill, peopleCount());
+      names = result.people.map((_, i) => `Person ${i + 1}`);
+    }
 
     renderTotals(result.bill);
-    renderHeadline(result.people);
+    if (state.mode === 'even') renderHeadline(result.people);
+    else $('headline').replaceChildren();
     renderBreakdown(result.people, names);
   }
 
   markPreset(state.tipPercent);
+  renderPeopleList();
+  renderItemList();
   update();
 })();
